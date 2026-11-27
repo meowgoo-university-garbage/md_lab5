@@ -262,7 +262,7 @@ def searchMove(game, rounds, temperature, repeats):
 
 
 def main():
-    if True:
+    if False:
         ts = [ 0.0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 4.0 ]
         # ts = [ 0.0, 0.25, 0.5 ]
         # ts = [ 2.0 ]
@@ -279,8 +279,8 @@ def main():
                 result_x = 0
                 result_o = 0
                 result_tie = 0
-                for _ in range(30):
-                    game = mkGame(mkBoard(6, 6), 4, [ 'x', 'o' ])
+                for _ in range(10):
+                    game = mkGame(mkBoard(3, 3), 3, [ 'x', 'o' ])
                     while True:
                         if game_isOver(game):
                             if game_checkWin(game, 'x'):
@@ -294,7 +294,7 @@ def main():
                         # game_printState(game)
 
                         t = t1 if game_currentTurn(game) == 'x' else t2
-                        move = searchMove(game, 200, t, 1)
+                        move = searchMove(game, 100, t, 1)
                         game = game_playMove(game, move)
 
                 wins[i, j] = float(result_x) / float(result_x + result_o + result_tie)
@@ -315,12 +315,37 @@ def main():
         fig.colorbar(im, ax = ax)
         plt.show()
 
-    return
+
+    if False:
+        times = np.zeros(10 + 1)
+
+        for sideSize in range(3, 10 + 1):
+            count = 1
+            for _ in range(count):
+                time_start = time.process_time()
+
+                game = mkGame(mkBoard(sideSize, sideSize), 3, [ 'x', 'o' ])
+                while True:
+                    if game_isOver(game):
+                        break
+
+                    move = searchMove(game, 200, 0.5, 1)
+                    game = game_playMove(game, move)
+
+                time_end = time.process_time()
+                t = time_end - time_start
+                times[sideSize] += float(t)
+            times[sideSize] /= float(count)
+
+        plt.plot(times)
+        plt.show()
+
+    # return
 
     game = mkGame(mkBoard(3, 3), 3, [ 'x', 'o' ])
     # game = game_playMoves(game, [ (0, 0), (1, 1), (1, 0), (2, 0), (0, 1) ])
     # game = game_playMoves(game, [ (0, 0), (1, 1), (1, 0) ])
-    # game = game_playMoves(game, [ (1, 1), (2, 2), (1, 0), (1, 2), (0, 2), (2, 0), (2, 1) ])
+    game = game_playMoves(game, [ (1, 1), (2, 2), (1, 0), (1, 2), (0, 2), (2, 0), (2, 1) ])
 
     nextGame = None
     while True:
@@ -345,7 +370,7 @@ def main():
             nextGame = game_playMove(game, (x, y))
         else:
             # move = random.choice(game_getAllPossibleMoves(game))
-            move = searchMove(game, 1000, 1.2, 1)
+            move = searchMove(game, 100, 1.2, 1)
             nextGame = game_playMove(game, move)
 
         if nextGame is None: continue
