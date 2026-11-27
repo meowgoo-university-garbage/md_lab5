@@ -211,7 +211,7 @@ def searchMove(game, rounds, temperature, repeats):
             best_child = None
             for child in node["children"]:
                 exploration = math.sqrt(math.log(totalRollouts) / child["rollouts"])
-                winningFraction = nodeWinningFraction(child, game_prevTurn(child["game"]))
+                winningFraction = 1 - nodeWinningFraction(child, game_currentTurn(child["game"]))
                 score = winningFraction + temperature * exploration
                 if score > best_score:
                     best_score = score
@@ -245,16 +245,13 @@ def searchMove(game, rounds, temperature, repeats):
             node = node["parent"]
 
     def finalScore(node):
-        score = nodeWinningFraction(node, game_currentTurn(game))
-        if score == 0 and nodeWinningFraction(node, game_nextTurn(game)) > 0:
-            score -= 10
+        score = 1 - nodeWinningFraction(node, game_nextTurn(game))
+        # if score == 0 and nodeWinningFraction(node, game_nextTurn(game)) > 0:
+        #     score -= 10
         return score
 
-    if len(game_getAllPossibleMoves(game)) == 2:
-        for c in root["children"]:
-            print(f"{c["wins"]} {c["move"]} {finalScore(c)}")
-            for cc in c["children"]:
-                print(f"\t{cc["wins"]} {cc["move"]} {finalScore(cc)}")
+    # for c in root["children"]:
+    #     print(f"{c["wins"]} {c["move"]}")
 
     best_child = max(root["children"], key = finalScore)
     return best_child["move"]
@@ -265,6 +262,61 @@ def searchMove(game, rounds, temperature, repeats):
 
 
 def main():
+    if True:
+        ts = [ 0.0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 4.0 ]
+        # ts = [ 0.0, 0.25, 0.5 ]
+        # ts = [ 2.0 ]
+        wins = np.zeros((len(ts), len(ts)))
+        for i in range(len(ts)):
+            for j in range(len(ts)):
+                # if i != j: continue
+
+                t1 = ts[i]
+                t2 = ts[j]
+
+                print(f"{t1} vs {t2}")
+
+                result_x = 0
+                result_o = 0
+                result_tie = 0
+                for _ in range(30):
+                    game = mkGame(mkBoard(6, 6), 4, [ 'x', 'o' ])
+                    while True:
+                        if game_isOver(game):
+                            if game_checkWin(game, 'x'):
+                                result_x += 1
+                            if game_checkWin(game, 'o'):
+                                result_o += 1
+                            if game_checkTie(game):
+                                result_tie += 1
+                            break
+
+                        # game_printState(game)
+
+                        t = t1 if game_currentTurn(game) == 'x' else t2
+                        move = searchMove(game, 200, t, 1)
+                        game = game_playMove(game, move)
+
+                wins[i, j] = float(result_x) / float(result_x + result_o + result_tie)
+                # wins[i, j] = i / float(len(ts))
+
+        fig, ax = plt.subplots(figsize=(10, 8))
+        im = ax.imshow(wins, cmap = "viridis")
+        ax.set_ylabel("X")
+        ax.set_xlabel("O")
+        ax.set_xticks(np.arange(len(ts)))
+        ax.set_yticks(np.arange(len(ts)))
+        ax.set_xticklabels([f"{t:.1f}" for t in ts])
+        ax.set_yticklabels([f"{t:.1f}" for t in ts])
+        for i in range(len(ts)):
+            for j in range(len(ts)):
+                text = ax.text(j, i, f"{wins[i, j]:.1f}%")
+
+        fig.colorbar(im, ax = ax)
+        plt.show()
+
+    return
+
     game = mkGame(mkBoard(3, 3), 3, [ 'x', 'o' ])
     # game = game_playMoves(game, [ (0, 0), (1, 1), (1, 0), (2, 0), (0, 1) ])
     # game = game_playMoves(game, [ (0, 0), (1, 1), (1, 0) ])
@@ -293,7 +345,7 @@ def main():
             nextGame = game_playMove(game, (x, y))
         else:
             # move = random.choice(game_getAllPossibleMoves(game))
-            move = searchMove(game, 100, 1.2, 1)
+            move = searchMove(game, 1000, 1.2, 1)
             nextGame = game_playMove(game, move)
 
         if nextGame is None: continue
